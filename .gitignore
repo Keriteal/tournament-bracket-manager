@@ -17,3 +17,6 @@
 # config
 .env
 ./test/.env
+
+#Other
+go.sum
