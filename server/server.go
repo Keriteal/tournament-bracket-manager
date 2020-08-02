@@ -76,6 +76,8 @@ func CreateServer() *http.Server {
 	// health check
 	r.GET("/ping", matchController.HandlePing)
 	r.POST("/matchschedule", matchController.HandleGetMatchSchedule)
+	r.POST("/setresult", matchController.HandleSetMatchResult)
+	r.GET("/getmatches", matchController.HandleGetMatches)
 
 	/*
 		Start HTTP Server

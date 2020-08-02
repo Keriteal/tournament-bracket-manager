@@ -35,6 +35,17 @@ type FormGetMatchSchedule struct {
 	Format string   `json:"format"`
 }
 
+type FormSetMatchResult struct {
+	Tournament string `json:"tournament"`
+	Round      int    `json:"round"`
+	Table      int    `json:"table"`
+	Result     int    `json:"result"`
+}
+
+type FormGetMatches struct {
+	Tournament string `json:"tournament"`
+}
+
 func (mc *MatchController) HandleGetMatchSchedule(c *gin.Context) {
 	form := FormGetMatchSchedule{}
 	if err := c.ShouldBindJSON(&form); err != nil {
@@ -59,7 +70,7 @@ func (mc *MatchController) HandleGetMatchSchedule(c *gin.Context) {
 		return
 	}
 
-	brackets, err := services.GetMatchSchedule(form.Teams, form.Format)
+	brackets, id, err := services.GetMatchSchedule(form.Teams, form.Format)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -74,8 +85,92 @@ func (mc *MatchController) HandleGetMatchSchedule(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		gin.H{
+			"msg":           "success",
+			"data":          brackets,
+			"tournament_id": id,
+		},
+	)
+}
+
+func (mc *MatchController) HandleSetMatchResult(c *gin.Context) {
+	form := FormSetMatchResult{}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"msg":   "failure",
+				"error": err.Error(),
+			},
+		)
+		return
+	}
+
+	if form.Tournament == "" || form.Round == 0 || form.Table == 0 {
+		c.JSON(http.StatusBadRequest,
+			gin.H{
+				"msg":   "failure",
+				"error": "missing param",
+			},
+		)
+		return
+	}
+
+	if err := services.SetMatchResult(form.Tournament, form.Round, form.Table, form.Result); err != nil {
+		c.JSON(http.StatusInternalServerError,
+			gin.H{
+				"msg":   "failure",
+				"error": err.Error(),
+			},
+		)
+		return
+	}
+
+	c.JSON(http.StatusOK,
+		gin.H{
+			"msg": "success",
+		},
+	)
+}
+
+func (mc *MatchController) HandleGetMatches(c *gin.Context) {
+	form := FormGetMatches{}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"msg": "failure",
+				"err": err.Error(),
+			},
+		)
+		return
+	}
+
+	if form.Tournament == "" {
+		c.JSON(http.StatusBadRequest,
+			gin.H{
+				"msg": "failure",
+				"err": "tournament required",
+			},
+		)
+		return
+	}
+
+	matches, err := services.GetMatches(form.Tournament)
+	if err != nil {
+		mc.log.Error(err.Error())
+		c.JSON(http.StatusInternalServerError,
+			gin.H{
+				"msg": "failure",
+				"err": err.Error(),
+			},
+		)
+		return
+	}
+
+	c.JSON(http.StatusOK,
+		gin.H{
 			"msg":  "success",
-			"data": brackets,
+			"data": matches,
 		},
 	)
 }
